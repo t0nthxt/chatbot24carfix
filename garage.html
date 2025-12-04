@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>24CarFix - Garage</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-orange: #ff8c00;
+            --dark-bg: #1e1e1e;
+            --sidebar-bg: #121212;
+            --text-white: #ffffff;
+            --page-bg: #f5f5f5;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { height: 100vh; display: flex; overflow: hidden; background: var(--page-bg); }
+        
+        .container { display: flex; width: 100%; height: 100%; }
+        .sidebar { width: 250px; background: var(--sidebar-bg); color: var(--text-white); padding: 20px; }
+        .brand { font-size: 1.2rem; font-weight: bold; margin-bottom: 30px; color: var(--primary-orange); }
+        .menu ul { list-style: none; }
+        .menu li { padding: 10px; margin-bottom: 5px; border-radius: 5px; }
+        .menu li a { text-decoration: none; color: #b0b0b0; display: block; }
+        .menu li.active, .menu li:hover { background: #333; }
+        .menu li.active a { color: white; }
+
+        .main-content { flex: 1; display: flex; flex-direction: column; }
+        .header { background: var(--primary-orange); padding: 30px; color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        
+        .garage-area { padding: 20px; overflow-y: auto; flex: 1; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
+        
+        /* Card Styling Update */
+        .card { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 10px; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
+            position: relative; 
+            cursor: pointer; 
+            transition: transform 0.2s; 
+            border: 1px solid #eee; 
+            text-align: center; 
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .card:hover { transform: translateY(-5px); border-color: var(--primary-orange); }
+
+        /* Typography for Card */
+        .card-name-main {
+            font-size: 1.6rem; /* ใหญ่สุด */
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+            margin-top: 15px; /* เว้นที่ให้ปุ่มลบด้านบน */
+        }
+        .card-info-sub {
+            font-size: 0.95rem; /* เล็กลง */
+            color: #555;
+            margin-bottom: 2px;
+        }
+        .card-id-small {
+            font-size: 0.8rem; /* เล็กที่สุด สีจาง */
+            color: #aaa;
+            margin-bottom: 10px;
+        }
+        
+        .del-btn { position: absolute; top: 10px; right: 10px; color: #ffcccb; cursor: pointer; z-index: 10; padding: 5px; }
+        .del-btn:hover { color: red; transform: scale(1.2); }
+        
+        .add-card { border: 2px dashed #ccc; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 200px; color: #28a745; }
+        .add-card i { font-size: 3rem; margin-bottom: 10px; }
+
+        /* Modal */
+        .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); z-index: 100; }
+        .modal-content { background: white; margin: 10% auto; padding: 20px; width: 320px; border-radius: 10px; display: flex; flex-direction: column; gap: 10px; }
+        .modal input { padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+        .btn-save { background: #28a745; color: white; padding: 10px; border: none; cursor: pointer; border-radius: 5px; }
+        .close { align-self: flex-end; cursor: pointer; font-size: 1.5rem; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <aside class="sidebar">
+        <div class="brand"><i class="fas fa-car-side"></i> 24CarFix</div>
+        <nav class="menu">
+            <ul>
+                <li><a href="chat.html"><i class="fas fa-comments"></i> แชทบอท</a></li>
+                <li class="active"><a href="garage.html"><i class="fas fa-book"></i> My Garage</a></li>
+            </ul>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <div class="header">
+            <h1><i class="fas fa-book"></i> My Garage (สมุดพกประจำรถ)</h1>
+            <p>จัดการข้อมูลรถยนต์ของคุณได้ที่นี่</p>
+        </div>
+
+        <div class="garage-area">
+            <h3>รายการรถของคุณ</h3>
+            <div class="grid" id="grid">
+                </div>
+        </div>
+    </main>
+</div>
+
+<div id="modal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <h3>เพิ่มรถคันใหม่</h3>
+        <input type="text" id="in-name" placeholder="ชื่อเรียก (เช่น พ่อหล่อเท่)">
+        <input type="text" id="in-model" placeholder="ยี่ห้อ (เช่น toyota)">
+        <input type="number" id="in-year" placeholder="ปี (เช่น 2018)">
+        <input type="date" id="in-prb">
+        <button class="btn-save" onclick="saveCar()">บันทึกข้อมูล</button>
+    </div>
+</div>
+
+<script>
+    // const API_BASE = 'http://localhost:5678/webhook';
+    const API_BASE = 'https://398e3c8ff37c.ngrok-free.app/webhook';
+
+    document.addEventListener('DOMContentLoaded', loadData);
+
+    async function loadData() {
+        try {
+            const res = await fetch(`${API_BASE}/getData`);
+            const data = await res.json();
+            renderGrid(data);
+        } catch(e) { 
+            console.error("Error loading data", e); 
+        }
+    }
+
+    function renderGrid(list) {
+        const grid = document.getElementById('grid');
+        grid.innerHTML = '';
+
+        list.forEach(car => {
+            const el = document.createElement('div');
+            el.className = 'card';
+            
+            // ดึงชื่อ (name) มาแสดง ถ้าไม่มีให้ใช้ carmodel แทน
+            const carName = car.name || car.carmodel;
+
+            el.onclick = () => {
+                localStorage.setItem('selectedBrand', car.carmodel);
+                window.location.href = 'chat.html';
+            };
+
+            el.innerHTML = `
+                <div class="del-btn" onclick="deleteCar(event, '${carName}')" title="ลบข้อมูล">
+                    <i class="fas fa-trash"></i>
+                </div>
+                
+                <div class="card-name-main">${carName}</div>
+
+                <div class="card-info-sub">${car.carmodel} (${car.caryear})</div>
+                
+                <div class="card-id-small">ID: #${car.id}</div>
+
+                <div style="margin-top:5px;">
+                    <span style="background:#ff8c00; color:white; padding:4px 12px; border-radius:15px; font-size:0.8rem;">
+                        พรบ: ${car.prblatest}
+                    </span>
+                </div>
+            `;
+            grid.appendChild(el);
+        });
+
+        const addBtn = document.createElement('div');
+        addBtn.className = 'card add-card';
+        addBtn.onclick = () => document.getElementById('modal').style.display = 'block';
+        addBtn.innerHTML = '<i class="fas fa-plus"></i>เพิ่มรถคันใหม่';
+        grid.appendChild(addBtn);
+    }
+
+    async function saveCar() {
+        const payload = {
+            name: document.getElementById('in-name').value,
+            carmodel: document.getElementById('in-model').value,
+            caryear: document.getElementById('in-year').value,
+            prblatest: document.getElementById('in-prb').value || "2025-01-01"
+        };
+        
+        try {
+            const res = await fetch(`${API_BASE}/addData`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if(data) {
+                alert('เพิ่มข้อมูลสำเร็จ');
+                closeModal();
+                loadData();
+            }
+        } catch(e) { 
+            alert('เกิดข้อผิดพลาดในการเพิ่มข้อมูล'); 
+        }
+    }
+
+    async function deleteCar(e, name) {
+        e.stopPropagation();
+
+        if(confirm(`ยืนยันการลบรถชื่อ "${name}" หรือไม่?`)) {
+            try {
+                const res = await fetch(`${API_BASE}/removeData`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: name })
+                });
+
+                if (res.ok) {
+                    alert('ลบข้อมูลเรียบร้อยแล้ว');
+                    loadData(); 
+                } else {
+                    alert('ไม่สามารถลบข้อมูลได้ หรือเกิดข้อผิดพลาดที่ Server');
+                }
+            } catch (error) {
+                console.error("Delete error:", error);
+                alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+            }
+        }
+    }
+
+    function closeModal() { document.getElementById('modal').style.display = 'none'; }
+    window.onclick = (e) => { if(e.target == document.getElementById('modal')) closeModal(); }
+</script>
+</body>
+</html>

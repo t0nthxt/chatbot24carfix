@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>24CarFix - Chat</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* --- CSS styles (Embedded) --- */
+        :root {
+            --primary-orange: #ff8c00;
+            --dark-bg: #1e1e1e;
+            --sidebar-bg: #121212;
+            --text-white: #ffffff;
+            --chat-bg: #f5f5f5;
+            --bot-bubble: #ffffff;
+            --user-bubble: #ff8c00;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', 'Sarabun', sans-serif; }
+        body { height: 100vh; display: flex; overflow: hidden; }
+        
+        /* Layout */
+        .container { display: flex; width: 100%; height: 100%; }
+        .sidebar { width: 250px; background: var(--sidebar-bg); color: var(--text-white); padding: 20px; display: flex; flex-direction: column; }
+        .brand { font-size: 1.2rem; font-weight: bold; margin-bottom: 30px; color: var(--primary-orange); }
+        .menu ul { list-style: none; }
+        .menu li { padding: 10px; cursor: pointer; color: #b0b0b0; margin-bottom: 5px; border-radius: 5px; transition: 0.3s; }
+        .menu li:hover, .menu li.active { background: #333; color: white; }
+        .menu a { text-decoration: none; color: inherit; display: block; }
+
+        .main-content { flex: 1; background: var(--chat-bg); display: flex; flex-direction: column; }
+        
+        /* Header */
+        .top-header { background: linear-gradient(90deg, #ff8c00, #ff6a00); padding: 20px; color: white; display: flex; justify-content: space-between; align-items: center; }
+        .header-actions i { font-size: 1.5rem; cursor: pointer; }
+
+        /* Chat Area */
+        .chat-container { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        .message { display: flex; gap: 10px; max-width: 80%; }
+        .message.user { align-self: flex-end; flex-direction: row-reverse; }
+        .avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .message.bot .avatar { background: #ffecb3; color: #ff8c00; }
+        .message.user .avatar { background: #333; color: white; }
+        
+        /* Bubble Styling */
+        .bubble { 
+            padding: 12px 16px; 
+            border-radius: 15px; 
+            font-size: 0.95rem; 
+            line-height: 1.4; 
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1); 
+            white-space: pre-wrap; 
+            overflow: hidden; 
+        }
+        .message.bot .bubble { background: var(--bot-bubble); color: #333; border-top-left-radius: 2px; }
+        .message.user .bubble { background: var(--user-bubble); color: white; border-top-right-radius: 2px; }
+
+        /* Inputs */
+        .input-area { padding: 15px; background: white; display: flex; gap: 10px; border-top: 1px solid #ddd; }
+        .input-area input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 25px; outline: none; }
+        .input-area button { width: 50px; height: 50px; border-radius: 50%; border: none; background: var(--primary-orange); color: white; cursor: pointer; font-size: 1.2rem; }
+        .input-area button:disabled { background: #ccc; }
+
+        /* Tables & Scrolls */
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.9rem; }
+        .data-table th, .data-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        .data-table th { background: #f2f2f2; }
+        
+        .horizontal-scroll { 
+            display: flex; 
+            overflow-x: auto; 
+            gap: 10px; 
+            padding-bottom: 5px; 
+            width: 100%;
+            white-space: normal;
+        }
+        
+        .scroll-card { 
+            min-width: 180px; 
+            max-width: 200px;
+            background: white; 
+            padding: 10px; 
+            border-radius: 8px; 
+            border: 1px solid #ddd; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            cursor: pointer; /* เพิ่ม cursor pointer ให้รู้ว่ากดได้ */
+            transition: transform 0.2s;
+        }
+
+        .scroll-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+        }
+
+        .car-name-text {
+            font-size: 1.1rem; 
+            font-weight: bold; 
+            margin-bottom: 5px; 
+            color: #333;
+            line-height: 1.2;
+        }
+        .car-detail-text {
+            color: #666; 
+            font-size: 0.85rem;
+            line-height: 1.2;
+        }
+
+        /* --- Modal Styling --- */
+        .modal { 
+            display: none; 
+            position: fixed; 
+            z-index: 1000; 
+            left: 0;
+            top: 0;
+            width: 100%; 
+            height: 100%; 
+            background-color: rgba(0,0,0,0.6); 
+            backdrop-filter: blur(2px);
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 10% auto; 
+            padding: 25px;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 400px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        .close-modal {
+            color: #aaa;
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close-modal:hover { color: #333; }
+
+        .modal-img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        .modal-title {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #333;
+            margin-top: 5px;
+        }
+
+        .modal-desc {
+            color: #666;
+            line-height: 1.6;
+            font-size: 0.95rem;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .order-btn {
+            background-color: var(--primary-orange);
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: bold;
+            text-align: center;
+            transition: background 0.3s;
+        }
+
+        .order-btn:hover {
+            background-color: #e67e00;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <aside class="sidebar">
+        <div class="brand"><i class="fas fa-car-side"></i> 24CarFix</div>
+        <nav class="menu">
+            <ul>
+                <li class="active"><a href="chat.html"><i class="fas fa-comments"></i> แชทบอท</a></li>
+                <li><a href="garage.html"><i class="fas fa-book"></i> My Garage</a></li>
+            </ul>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <header class="top-header">
+            <div>
+                <h1><i class="fas fa-robot"></i> AI Assistant</h1>
+                <p>รถที่เลือก: <span id="current-car">กำลังโหลด...</span></p>
+            </div>
+            <div class="header-actions">
+                <a href="garage.html" style="color:white;"><i class="fas fa-ellipsis-v"></i></a>
+            </div>
+        </header>
+
+        <div class="chat-container" id="chat-container">
+            <div class="message bot">
+                <div class="avatar"><i class="fas fa-robot"></i></div>
+                <div class="bubble">สวัสดีครับ มีอะไรให้ผมช่วยเรื่องรถวันนี้ไหมครับ?</div>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <input type="text" id="user-input" placeholder="พิมพ์ข้อความ..." onkeypress="handleEnter(event)">
+            <button id="send-btn" onclick="sendMessage()"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </main>
+</div>
+
+<div id="productModal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closeProductModal()">&times;</span>
+        <img id="p-modal-img" class="modal-img" src="" alt="Product Image">
+        <div id="p-modal-title" class="modal-title">ชื่อสินค้า</div>
+        <div class="modal-desc">
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+        </div>
+        <button class="order-btn" onclick="orderProduct()">สั่งซื้อสินค้า</button>
+    </div>
+</div>
+
+<script>
+    // const API_BASE = 'http://localhost:5678/webhook';
+    const API_BASE = 'https://ddc8e7aee27e.ngrok-free.app/webhook';
+    let selectedBrand = localStorage.getItem('selectedBrand');
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        if (!selectedBrand) {
+            try {
+                const res = await fetch(`${API_BASE}/getData`);
+                if(res.ok) {
+                    const data = await res.json();
+                    if (data.length > 0) {
+                        selectedBrand = data[0].carmodel;
+                        localStorage.setItem('selectedBrand', selectedBrand);
+                    }
+                }
+            } catch(e) { console.error(e); }
+        }
+        document.getElementById('current-car').innerText = selectedBrand || "ไม่ระบุ";
+    });
+
+    function handleEnter(e) { if (e.key === 'Enter') sendMessage(); }
+
+    async function sendMessage() {
+        const input = document.getElementById('user-input');
+        const btn = document.getElementById('send-btn');
+        const text = input.value.trim();
+        if (!text) return;
+
+        addBubble(text, 'user');
+        input.value = '';
+        input.disabled = true; btn.disabled = true;
+
+        try {
+            const res = await fetch(`${API_BASE}/action`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: text, selectedBrand: selectedBrand })
+            });
+
+            const rawText = await res.text();
+            if(!rawText) throw new Error("Server response empty");
+
+            const data = JSON.parse(rawText);
+            handleResponse(data);
+        } catch (e) {
+            console.error(e);
+            addBubble("Error Connecting Server: กรุณาตรวจสอบการเชื่อมต่อ", 'bot');
+        }
+
+        input.disabled = false; btn.disabled = false;
+        input.focus();
+    }
+
+    function handleResponse(data) {
+        let content = '';
+        if (Array.isArray(data)) data = data[0]; 
+
+        switch(data.responseType) {
+            case 'normal': content = data.output; break;
+            case 'create': 
+            case 'delete':
+                content = `${data.responseType === 'create' ? 'เพิ่ม' : 'ลบ'}ข้อมูลเรียบร้อย:<br>` + renderTable(data.data);
+                break;
+            case 'show': content = renderCarScroll(data.data); break;
+            case 'recommend': content = renderProductScroll(data.products); break;
+            default: content = JSON.stringify(data);
+        }
+        addBubble(content, 'bot', true);
+    }
+
+    function addBubble(text, sender, isHtml = false) {
+        const div = document.createElement('div');
+        div.className = `message ${sender}`;
+        div.innerHTML = `
+            <div class="avatar"><i class="fas fa-${sender==='bot'?'robot':'user'}"></i></div>
+            <div class="bubble">${isHtml ? text : text.replace(/\n/g, '<br>')}</div>
+        `;
+        document.getElementById('chat-container').appendChild(div);
+        document.getElementById('chat-container').scrollTop = 9999;
+    }
+
+    function renderTable(obj) {
+        if(!obj) return "";
+        let html = '<table class="data-table">';
+        for(let k in obj) html += `<tr><th>${k}</th><td>${obj[k]}</td></tr>`;
+        return html + '</table>';
+    }
+
+    function renderCarScroll(list) {
+        if(!list || !Array.isArray(list)) return "<i>ไม่มีข้อมูลรถ</i>";
+        
+        const items = list.map(c => 
+            `<div class="scroll-card">` +
+                `<div class="car-name-text">${c.name || 'ไม่มีชื่อ'}</div>` +
+                `<div class="car-detail-text">${c.carmodel} (${c.caryear})</div>` +
+            `</div>`
+        ).join('');
+        return `<div class="horizontal-scroll">${items}</div>`;
+    }
+
+    // --- Render Product Scroll (Updated for Modal) ---
+    function renderProductScroll(list) {
+        if (!list || !Array.isArray(list)) {
+            return `<div style="color:red;">ไม่พบข้อมูลสินค้าแนะนำ</div>`;
+        }
+
+        const items = list.map(p => {
+            const encodedName = encodeURIComponent(p);
+            // ใช้ text=encodedName เพื่อให้รูป placehold.co แสดงภาษาไทยได้ถูกต้อง
+            const mockImgUrl = `https://placehold.co/300x200/ff8c00/ffffff?text=producttest`;
+
+            // ส่งค่า p (ชื่อสินค้า) และ mockImgUrl ไปยังฟังก์ชัน openProductModal เมื่อกด
+            return `<div class="scroll-card" onclick="openProductModal('${p}', '${mockImgUrl}')" style="padding:10px; min-width:160px;">` +
+                `<img src="${mockImgUrl}" alt="${p}" style="width:100%; height:100px; object-fit:cover; border-radius:5px; margin-bottom:8px;">` +
+                `<div style="font-weight:bold; font-size:0.9rem; color:#333; text-align:center; line-height:1.2;">${p}</div>` +
+            `</div>`;
+        }).join('');
+        
+        return `<div class="horizontal-scroll">${items}</div>`;
+    }
+
+    // --- Modal Functions ---
+    const modal = document.getElementById('productModal');
+    
+    function openProductModal(name, imgSrc) {
+        // Set Data
+        document.getElementById('p-modal-title').innerText = name;
+        document.getElementById('p-modal-img').src = imgSrc;
+        
+        // Show Modal
+        modal.style.display = "block";
+    }
+
+    function closeProductModal() {
+        modal.style.display = "none";
+    }
+
+    function orderProduct() {
+        const productName = document.getElementById('p-modal-title').innerText;
+        // ปิด Modal
+        closeProductModal();
+        // ส่งข้อความยืนยันในแชท (จำลองการทำงาน)
+        addBubble(`ได้รับคำสั่งซื้อ "${productName}" เรียบร้อยแล้วครับ เจ้าหน้าที่จะติดต่อกลับเร็วๆ นี้`, 'bot');
+    }
+
+    // ปิด Modal เมื่อกดพื้นที่ข้างนอก
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            closeProductModal();
+        }
+    }
+</script>
+</body>
+</html>
